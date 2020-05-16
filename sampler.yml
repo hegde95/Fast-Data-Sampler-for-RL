@@ -1,4 +1,4 @@
-name: resl
+name: sampler
 channels:
   - defaults
 dependencies:
