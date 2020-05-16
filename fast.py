@@ -12,6 +12,8 @@ from collections import deque
 from gym import spaces
 from multiprocessing import Process, Pool, cpu_count
 import time
+import sys
+import argparse
 
 ##The following wrapper code has been copied from OpenAi baselines
 
@@ -136,23 +138,35 @@ def wrap_atari(env):
     env = FrameStack(env, 4)
     return env
 
-max_steps = 100
-k = cpu_count() - 1
+if __name__ == "__main__":
+    # max_steps = 1000000
+    parser = argparse.ArgumentParser()
+    parser.add_argument("max_steps", help="max number of steps per env",
+                        type=int, default=10000)
+    args = parser.parse_args()
 
-def p_step(env):
-    return [env.step(env.action_space.sample()) for _ in range(max_steps)]
-
-total_frames_to_collect = k*max_steps*4
-envs = [wrap_atari(gym.make('Breakout-v0', frameskip = 4 )) for _ in range(k)]
-
-# using pool async
-[env.reset() for env in envs]
-pool = Pool(k)
-
-st = time.time()
-ress = [pool.apply_async(p_step, args=(env,)) for env in envs]
-[res.get() for res in ress]
-en = time.time()
-
-FR = total_frames_to_collect/(en-st)
-print("Frame rate is: {}".format(FR))
+    max_steps = args.max_steps
+    
+    k = cpu_count() - 1
+    
+    def p_step(env):
+        for _ in range(max_steps):
+            env.step(env.action_space.sample())
+        # return [env.step(env.action_space.sample()) for _ in range(max_steps)] #This causes RAM to fail
+    
+    total_frames_to_collect = k*max_steps*4
+    envs = [wrap_atari(gym.make('Breakout-v0', frameskip = 4 )) for _ in range(k)]
+    
+    # using pool async
+    [env.reset() for env in envs]
+    pool = Pool(k)
+    
+    st = time.time()
+    ress = [pool.apply_async(p_step, args=(env,)) for env in envs]
+    [res.get() for res in ress]
+    pool.close()
+    pool.join()
+    en = time.time()
+    
+    FR = total_frames_to_collect/(en-st)
+    print("Frame rate is: {}".format(FR))
