@@ -132,6 +132,7 @@ class FrameStack(gym.Wrapper):
     def _get_ob(self):
         assert len(self.frames) == self.k
         return LazyFrames(list(self.frames))._frames
+        #return list(self.frames)
     
 def wrap_atari(env):
     env = WarpFrame(env)
@@ -151,7 +152,9 @@ if __name__ == "__main__":
     
     def p_step(env):
         for _ in range(max_steps):
-            env.step(env.action_space.sample())
+            _, _, done, _ = env.step(env.action_space.sample())
+            if done:
+                env.reset()
         # return [env.step(env.action_space.sample()) for _ in range(max_steps)] #This causes RAM to fail
     
     total_frames_to_collect = k*max_steps*4
